@@ -13,6 +13,7 @@ export default class Draw {
         });
         this.resizeObserver.observe(this.parent);
         this.buffer = [];
+        this.listStore = [];
         this.resize(true);
     }
 
@@ -67,67 +68,144 @@ export default class Draw {
         this.buffer.push(command);
     }
 
+    _store(type, newMean) {
+        const c = this.canvas;
+        if (newMean) {
+            if (type === 'fill') {
+                this.listStore.fillStyle = c.fillStyle;
+                c.fillStyle = newMean;
+            } else if (type === 'color') {
+                this.listStore.strokeStyle = c.strokeStyle;
+                c.strokeStyle = newMean;
+            }
+        }
+    }
+
+    _reStore(type, newMean) {
+        const c = this.canvas;
+        if (newMean) {
+            if (type === 'fill') {
+                c.fillStyle = this.listStore.fillStyle;
+            } else if (type === 'color') {
+                c.strokeStyle = this.listStore.strokeStyle;
+            }
+        }
+    }
+
+
+    _color(o) {
+        this.canvas.strokeStyle = o.color;
+    }
+
+    _fill(o) {
+        this.canvas.fillStyle = o.color;
+    }
+
+    _line(o) {
+        this._store('color', o.line.color);
+        this.canvas.beginPath();
+        this.canvas.moveTo(this.worldX(o.line.x1), this.worldY(o.line.y1));
+        this.canvas.lineTo(this.worldX(o.line.x2), this.worldY(o.line.y2));
+        this.canvas.stroke();
+        this.canvas.closePath();
+        this._reStore('color', o.line.color);
+    }
+
+    _grid(o) {
+        this._store('color', o.grid.color);
+        const start = 0;
+        let left = 0;
+        let right = 0;
+
+        while (left < this.local.x2) {
+            this.canvas.beginPath();
+            this.canvas.moveTo(this.worldX(left), this.worldY(this.local.y1));
+            this.canvas.lineTo(this.worldX(left), this.worldY(this.local.y2));
+            this.canvas.stroke();
+            this.canvas.closePath();
+
+            this.canvas.beginPath();
+            this.canvas.moveTo(this.worldX(right), this.worldY(this.local.y1));
+            this.canvas.lineTo(this.worldX(right), this.worldY(this.local.y2));
+            this.canvas.stroke();
+            this.canvas.closePath();
+
+            left += o.grid.step;
+            right -= o.grid.step;
+        }
+        left = 0;
+        right = 0;
+        while (left < this.local.y1) {
+            this.canvas.beginPath();
+            this.canvas.moveTo(this.worldX(this.local.x1), this.worldY(left));
+            this.canvas.lineTo(this.worldX(this.local.x2), this.worldY(left));
+            this.canvas.stroke();
+            this.canvas.closePath();
+
+            this.canvas.beginPath();
+            this.canvas.moveTo(this.worldX(this.local.x1), this.worldY(right));
+            this.canvas.lineTo(this.worldX(this.local.x2), this.worldY(right));
+            this.canvas.stroke();
+            this.canvas.closePath();
+
+            left += o.grid.step;
+            right -= o.grid.step;
+        }
+
+        this._reStore('color', o.grid.color);
+    }
+
+    _point(o) {
+        this._store('color', o.point.color);
+        this.canvas.beginPath();
+        this.canvas.moveTo(this.worldX(o.point.x), this.worldY(o.point.y));
+        this.canvas.lineTo(this.worldX(o.point.x + 1), this.worldY(o.point.y + 0));
+        this.canvas.stroke();
+        this.canvas.closePath();
+        this._reStore('color', o.point.color);
+    }
+
+    _text(o) {
+        this._store(o.text.type === 'fill' ? 'fill' : 'color', o.text.color);
+        this.canvas.font = `${o.text.size}px serif`;
+        if (o.text.type === 'fill') {
+            this.canvas.fillText(o.text.msg, this.worldX(o.text.x), this.worldY(o.text.y));
+        } else {
+            this.canvas.strokeText(o.text.msg, this.worldX(o.text.x), this.worldY(o.text.y));
+        }
+
+        this._reStore(o.text.type === 'fill' ? 'fill' : 'color', o.text.color);
+    }
+
     out() {
         this.updateSC();
-        const CX = this.worldX;
-        const CY = this.worldY;
-        const c = this.canvas;
-        let strokeStyleStore;
-        let fillStyleStore;
-        const store = (type, newMean) => {
-            if (newMean) {
-                if (type === 'fill') {
-                    fillStyleStore = c.fillStyle;
-                    c.fillStyle = newMean;
-                } else if (type === 'color') {
-                    strokeStyleStore = c.strokeStyle;
-                    c.strokeStyle = newMean;
-                }
-            }
-        };
-        const reStore = (type, newMean) => {
-            if (newMean) {
-                if (type === 'fill') {
-                    c.fillStyle = fillStyleStore;
-                } else if (type === 'color') {
-                    c.strokeStyle = strokeStyleStore;
-                }
-            }
-        };
 
         this.buffer.forEach((o) => {
             if (o.fill) {
-                c.fillStyle = o.color;
+                this._fill(o);
             } else if (o.color) {
-                c.strokeStyle = o.color;
+                this._color(o);
             } else if (o.line) {
-                store('color', o.line.color);
-                c.beginPath();
-                c.moveTo(CX(o.line.x1), CY(o.line.y1));
-                c.lineTo(CX(o.line.x2), CY(o.line.y2));
-                c.stroke();
-                c.closePath();
-                reStore('color', o.line.color);
+                this._line(o);
             } else if (o.point) {
-                store('color', o.point.color);
-                c.beginPath();
-                c.moveTo(CX(o.point.x), CY(o.point.y));
-                c.lineTo(CX(o.point.x + 1), CY(o.point.y + 0));
-                c.stroke();
-                c.closePath();
-                reStore('color', o.point.color);
+                this._point(o);
+            } else if (o.grid) {
+                this._grid(o);
+            } else if (o.text) {
+                this._text(o);
             }
         });
     }
-
 
     color(color) {
         this.saveCommand({ color });
     }
 
+
     fill(color) {
         this.saveCommand({ fill: color });
     }
+
 
     line(x1, y1, x2, y2, color = undefined) {
         this.saveCommand({
@@ -137,10 +215,27 @@ export default class Draw {
         });
     }
 
+
     point(x, y, color = undefined) {
         this.saveCommand({
             point: {
                 x, y, color,
+            },
+        });
+    }
+
+    grid(step, color = '#E5E5E5') {
+        this.saveCommand({
+            grid: {
+                step, color,
+            },
+        });
+    }
+
+    text(msg, x, y, color = 'black', size = 10, type = 'fill') {
+        this.saveCommand({
+            text: {
+                msg, x, y, color, type, size,
             },
         });
     }

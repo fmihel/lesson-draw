@@ -15,3 +15,9 @@ export function color(newColor) {
 export function point(x, y, colorPoint = undefined) {
     draw.point(x, y, colorPoint);
 }
+export function grid(step, colorGrid = undefined) {
+    draw.grid(step, colorGrid);
+}
+export function text(msg, x, y, colorText = 'black', size = 10, type = 'fill') {
+    draw.text(msg, x, y, colorText, size, type);
+}

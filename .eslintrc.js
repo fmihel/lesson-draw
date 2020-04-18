@@ -30,6 +30,7 @@ module.exports = {
         "no-unused-vars":"warn",
         'class-methods-use-this':"warn",
         'no-plusplus':'off',
+        'no-underscore-dangle':'off',
         "indent": [
             "error",
             4
