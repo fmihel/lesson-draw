@@ -21,3 +21,6 @@ export function grid(step, colorGrid = undefined) {
 export function text(msg, x, y, colorText = 'black', size = 10, type = 'fill') {
     draw.text(msg, x, y, colorText, size, type);
 }
+export function animate(step, param) {
+    draw.animate(step, param);
+}

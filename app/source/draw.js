@@ -41,15 +41,15 @@ export default class Draw {
         if (this.timerOut) {
             clearTimeout(this.timerOut);
         }
-        this.timerOut = setTimeout(() => {
-            this.timerOut = undefined;
-            const size = JX.pos(this.parent);
+        //        this.timerOut = setTimeout(() => {
+        this.timerOut = undefined;
+        const size = JX.pos(this.parent);
 
-            this.owner.width = size.w - 5;
-            this.owner.height = size.h - 5;
+        this.owner.width = size.w - 5;
+        this.owner.height = size.h - 5;
 
-            this.out();
-        }, 10);
+        this.out();
+        //        }, 10);
     }
 
     worldX(x) {
@@ -175,6 +175,43 @@ export default class Draw {
         }
 
         this._reStore(o.text.type === 'fill' ? 'fill' : 'color', o.text.color);
+    }
+
+    clear() {
+        this.buffer = [];
+        this.canvas.fillStyle = 'white';
+        this.canvas.fillRect(this.world.x1, this.world.y1, this.world.x2, this.world.y2);
+    }
+
+    animate(event, param) {
+        if (this.timerAnimate) return;
+        const p = {
+            delay: 100,
+            stopStep: 0,
+            stopTime: 0,
+            ...param,
+
+        };
+        if (!event) return;
+        let step = 0;
+        let T = 0;
+        this.timerAnimate = setInterval(() => {
+            this.buffer = [];
+            this.canvas.fillStyle = 'white';
+            this.canvas.fillRect(this.world.x1, this.world.y1, this.world.x2, this.world.y2);
+            const next = event({ step });
+            step++;
+            T += p.delay;
+            this.out();
+
+            if (
+                (next === false)
+                || ((p.stopStep > 0) && (p.stopStep <= step))
+                || ((p.stopTime > 0) && (p.stopTime <= T))
+            ) {
+                clearInterval(this.timerAnimate);
+            }
+        }, p.delay);
     }
 
     out() {
